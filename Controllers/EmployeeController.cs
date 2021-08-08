@@ -1,9 +1,11 @@
 ﻿using DepartamentEmployee.Models;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using MySql.Data.MySqlClient;
 using System;
 using System.Data;
+using System.IO;
 
 namespace EmployeeEmployee.Controllers
 {
@@ -12,9 +14,12 @@ namespace EmployeeEmployee.Controllers
     public class EmployeeController : ControllerBase
     {
         private readonly IConfiguration _configuration;
-        public EmployeeController(IConfiguration configuration)
+        private readonly IWebHostEnvironment _env;
+
+        public EmployeeController(IConfiguration configuration, IWebHostEnvironment env)
         {
             _configuration = configuration;
+            _env = env;
 
         }
         [HttpGet]
@@ -95,7 +100,7 @@ namespace EmployeeEmployee.Controllers
                     myCommand.Parameters.AddWithValue("@EmployeeName", emp.EmployeeName);
                     myCommand.Parameters.AddWithValue("@Departament", emp.Departament);
                     string date = emp.DateOfJoining.ToString("yyyy-MM-dd");
-                    myCommand.Parameters.AddWithValue("@DateOfJoining",date);
+                    myCommand.Parameters.AddWithValue("@DateOfJoining", date);
                     myCommand.Parameters.AddWithValue("@PhotoFileName", emp.PhotoFileName);
                     Console.WriteLine(myCommand.CommandText.ToString());
                     myReader = myCommand.ExecuteReader();
@@ -131,6 +136,27 @@ namespace EmployeeEmployee.Controllers
             }
 
             return new JsonResult("Deleted Succesfully");
+        }
+        [Route("SaveFile")]
+        [HttpPost]
+        public JsonResult SaveFile()
+        {
+            try
+            {
+                var httpRequest = Request.Form;
+                var postedFile = httpRequest.Files[0];
+                string filename = postedFile.FileName;
+                var physicalPath = _env.ContentRootPath + "/Photos/" + filename;
+                using (var stream = new FileStream(physicalPath,FileMode.Create))
+                {
+                    postedFile.CopyTo(stream);
+                }
+                return new JsonResult(filename);
+            }
+            catch (Exception)
+            {
+                return new JsonResult("anonymous.jpg");
+            }
         }
     }
 
